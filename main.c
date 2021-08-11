@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 
     int log = twod_init();
     if (log == 0) {
-        fprintf(stdout, "SDL2 has been successed initialized");
+        fprintf(stdout, "SDL2 was successfully initialized\n");
     } else {
         fprintf(stdout, "Cannot initialize SDL2\n");
     }
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 
 
     SDL_Window *window = SDL_CreateWindow("Just a window",
-                                          0, 0,
+                                          SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                           640, 480,
                                           SDL_WINDOW_SHOWN);
 
