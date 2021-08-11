@@ -1,5 +1,6 @@
 /*
-  TwoD Library
+  TwoD Library?
+  Two Dimensions?
   SDL2 Template Project?
   More comments are coming
  */
@@ -15,11 +16,11 @@ typedef struct screen {
     SDL_Texture *texture;
 } Screen;
 
-int twod_init() {
+int vcore_init() {
     int log = SDL_Init(SDL_INIT_EVERYTHING);
     return log;
 }
 
-void twod_close() {
+void vcore_shutdown() {
     SDL_Quit();
 }
