@@ -1,9 +1,25 @@
 #include <stdio.h>
 #include "./twod.h"
 
-#define SCREEN_FPS 144
-// Stolen https://codereview.stackexchange.com/a/250618
-#define  ms_frame 1000 / SCREEN_FPS
+#define SCREEN_FPS 60
+
+void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint32 color) {
+
+    // A rectangle, with the origin at the upper left (integer)
+    SDL_Rect rect = {
+        (int) ceilf(x), (int) ceilf(y), // x, y
+        (int) ceilf(w), (int) ceilf(h) // w, h
+    };
+
+    // TODO: Unpack color macro?
+    int success = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    success = SDL_RenderFillRect(renderer, &rect);
+}
+
+float x = 0.0f;
+float y = 0.0f;
+float velocityX = 320.0f;
+float velocityY = 320.0f;
 
 int main(int argc, char* argv[])
 {
@@ -65,25 +81,20 @@ int main(int argc, char* argv[])
                                               SDL_PIXELFORMAT_RGBA32,
                                               SDL_TEXTUREACCESS_STATIC,
                                               640, 480);
-    // A rectangle, with the origin at the upper left (integer)
-    SDL_Rect rectangle = {
-        0, 0, // x, y
-        32, 32 // w, h
-    };
-
-    SDL_Rect *prect = &rectangle;
 
     // A simple dummy event
     SDL_Event event;
 
-    // Fix framerate vars
+    // Framerate stuff
     Uint32 initial_ticks, elapsed_ms;
+    Uint32 lastUpdate = SDL_GetTicks();
 
     // Game loop
     size_t frames = 0;
     while (1) {
 
-        initial_ticks = SDL_GetTicks();
+        // initial_ticks = SDL_GetTicks();
+        Uint64 start = SDL_GetPerformanceCounter();
 
         // Pumps the event loop, gathering events from the input devices.
         SDL_PumpEvents();
@@ -95,29 +106,49 @@ int main(int argc, char* argv[])
                 exit(0);
             }
         }
-        // Do some other stuff here like render
 
-        // Clear the current rendering target with the drawing color
-        int success = SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-        SDL_RenderClear(renderer);
-
-        // Fill a rectangle on the current rendering target with the drawing color
-        success = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        if (frames % 144 == 0) {
-            prect->x += 32;
+        {  /* Render clear */
+            // Clear the current rendering target with the drawing color
+            int success = SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+            SDL_RenderClear(renderer);
         }
 
-        success = SDL_RenderFillRect(renderer, prect);
+        { /* Physics loop */
+
+            Uint32 time = SDL_GetTicks();
+            float dt = (time - lastUpdate) / 1000.0f;
+
+            x += (velocityX * dt);
+            y += (velocityY * dt);
+
+            if (x + 64 >= 640 || x < 0)
+                velocityX *= -1;
+
+            if (y + 64 >= 480 || y < 0)
+                velocityY *= -1;
+
+            lastUpdate = SDL_GetTicks();
+        }
+
+
+        { /* Render stuff */
+            // Draw a rectangle on the current rendering target with the drawing color
+            draw_rect(renderer,
+                      x,
+                      y,
+                      64, 64, 0);
+        }
 
         { /* End Rendering */
 
             // Update the screen with rendering performed.
             SDL_RenderPresent(renderer);
 
-            // Fixed framerate
-            elapsed_ms = SDL_GetTicks() - initial_ticks;
-            // fprintf(stdout, "%u %u\n", ms_frame, elapsed_ms);
-            if(elapsed_ms < ms_frame) SDL_Delay(ms_frame - elapsed_ms);
+            // Cap to 60 FPS (FPS Delay)
+            Uint64 end = SDL_GetPerformanceCounter();
+            float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
+            SDL_Delay(floor(16.6666f - elapsedMS));
+
             frames++;
         }
     }
@@ -135,4 +166,4 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-// gcc main.c `pkg-config --cflags --libs sdl2`
+// gcc main.c -lm `pkg-config --cflags --libs sdl2`
