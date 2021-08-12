@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
         break;
     }
 
-
+    // Create a window with the specified position, dimensions, and flags
     SDL_Window *window = SDL_CreateWindow("Just a window",
                                           SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                           640, 480,
@@ -47,18 +47,34 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    // Create a 2D rendering context for a window
     SDL_Renderer *renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+    // Create a texture for a rendering context.
     SDL_Texture *texture =  SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_RGBA32,
                                               SDL_TEXTUREACCESS_STATIC,
                                               640, 480);
+
+    // Update the screen with rendering performed.
     SDL_RenderPresent(renderer);
 
-    // Pause execution for 3000 milliseconds, for example
-    SDL_Delay(3000);
+    SDL_Event event;
+    // Game loop
+    while (1) {
 
+        // Pumps the event loop, gathering events from the input devices.
+        SDL_PumpEvents();
 
+        // Handle keyboard and other events
+        while(SDL_PollEvent(&event)) {
+            // Handle your events here
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                exit(0);
+            }
+        }
+        // Do some other stuff here
+    }
 
     // Close and destroy texture
     SDL_DestroyTexture(texture);
