@@ -1,5 +1,10 @@
 #include <stdio.h>
+#include <math.h>
 #include "./twod.h"
+
+#define SCREEN_FPS 144
+// Stolen https://codereview.stackexchange.com/a/250618
+#define  ms_frame 1000 / SCREEN_FPS
 
 int main(int argc, char* argv[])
 {
@@ -61,13 +66,22 @@ int main(int argc, char* argv[])
                                               SDL_PIXELFORMAT_RGBA32,
                                               SDL_TEXTUREACCESS_STATIC,
                                               640, 480);
+    // A rectangle, with the origin at the upper left (integer)
+    SDL_Rect rectangle = {
+        0, 0, // x, y
+        32, 32 // w, h
+    };
 
-    // Update the screen with rendering performed.
-    SDL_RenderPresent(renderer);
-
+    // A simple dummy event
     SDL_Event event;
+
+    // Fix framerate vars
+    Uint32 initial_ticks, elapsed_ms;
+
     // Game loop
     while (1) {
+
+        initial_ticks = SDL_GetTicks();
 
         // Pumps the event loop, gathering events from the input devices.
         SDL_PumpEvents();
@@ -79,9 +93,26 @@ int main(int argc, char* argv[])
                 exit(0);
             }
         }
-        // Do some other stuff here
+        // Do some other stuff here like render
+
+        // Clear the current rendering target with the drawing color
+        int success = SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
         SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
+
+        // Fill a rectangle on the current rendering target with the drawing color
+        success = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        success = SDL_RenderFillRect(renderer, &rectangle);
+
+        { /* End Rendering */
+
+            // Update the screen with rendering performed.
+            SDL_RenderPresent(renderer);
+
+            // Fixed framerate
+            elapsed_ms = SDL_GetTicks() - initial_ticks;
+            // fprintf(stdout, "%u %u\n", ms_frame, elapsed_ms);
+            if(elapsed_ms < ms_frame) SDL_Delay(ms_frame - elapsed_ms);
+        }
     }
 
     // Close and destroy texture
@@ -98,4 +129,4 @@ int main(int argc, char* argv[])
 }
 
 
-// gcc main.c `pkg-config --cflags --libs sdl2`
+// gcc main.c -lm `pkg-config --cflags --libs sdl2`
