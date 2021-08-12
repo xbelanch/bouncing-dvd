@@ -20,12 +20,20 @@ int main(int argc, char* argv[])
     int numVideoDisplays = SDL_GetNumVideoDisplays();
     fprintf(stdout, "Number of Video Displays: %d\n", numVideoDisplays);
 
-    SDL_Rect *rect = malloc(sizeof(SDL_Rect));
-    int displayBounds = SDL_GetDisplayBounds(0, rect);
-    fprintf(stdout, "Display bounds: %d\n", displayBounds);
+    SDL_Rect rect = {0};
+    int displayBounds = SDL_GetDisplayBounds(0, &rect);
+    if (displayBounds == 0) {
+        fprintf(stdout, "Display bounds: %d - %d\n", rect.w, rect.h);
+    }
 
     SDL_DisplayOrientation displayOrientation = SDL_GetDisplayOrientation(0);
-    fprintf(stdout, "Display orientation: %d\n", displayOrientation);
+    switch(displayOrientation) {
+    case 0:
+        fprintf(stdout, "Display orientation: %d\n", displayOrientation);
+        break;
+    default:
+        break;
+    }
 
 
     SDL_Window *window = SDL_CreateWindow("Just a window",
@@ -39,9 +47,23 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    SDL_Renderer *renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    SDL_Texture *texture =  SDL_CreateTexture(renderer,
+                                              SDL_PIXELFORMAT_RGBA32,
+                                              SDL_TEXTUREACCESS_STATIC,
+                                              640, 480);
+    SDL_RenderPresent(renderer);
+
     // Pause execution for 3000 milliseconds, for example
     SDL_Delay(3000);
 
+
+
+    // Close and destroy texture
+    SDL_DestroyTexture(texture);
+    // Close and destroy texture
+    SDL_DestroyRenderer(renderer);
     // Close and destroy the window
     SDL_DestroyWindow(window);
 
