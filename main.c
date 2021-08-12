@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <math.h>
 #include "./twod.h"
 
 #define SCREEN_FPS 144
@@ -72,6 +71,8 @@ int main(int argc, char* argv[])
         32, 32 // w, h
     };
 
+    SDL_Rect *prect = &rectangle;
+
     // A simple dummy event
     SDL_Event event;
 
@@ -79,6 +80,7 @@ int main(int argc, char* argv[])
     Uint32 initial_ticks, elapsed_ms;
 
     // Game loop
+    size_t frames = 0;
     while (1) {
 
         initial_ticks = SDL_GetTicks();
@@ -101,7 +103,11 @@ int main(int argc, char* argv[])
 
         // Fill a rectangle on the current rendering target with the drawing color
         success = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-        success = SDL_RenderFillRect(renderer, &rectangle);
+        if (frames % 144 == 0) {
+            prect->x += 32;
+        }
+
+        success = SDL_RenderFillRect(renderer, prect);
 
         { /* End Rendering */
 
@@ -112,6 +118,7 @@ int main(int argc, char* argv[])
             elapsed_ms = SDL_GetTicks() - initial_ticks;
             // fprintf(stdout, "%u %u\n", ms_frame, elapsed_ms);
             if(elapsed_ms < ms_frame) SDL_Delay(ms_frame - elapsed_ms);
+            frames++;
         }
     }
 
@@ -128,5 +135,4 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-
-// gcc main.c -lm `pkg-config --cflags --libs sdl2`
+// gcc main.c `pkg-config --cflags --libs sdl2`
