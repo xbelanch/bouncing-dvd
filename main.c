@@ -50,6 +50,12 @@ int main(int argc, char* argv[])
     // Create a 2D rendering context for a window
     SDL_Renderer *renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+    // Set the color used for drawing operations (Rect, Line and Clear).
+    // Paint it purple for debugging
+    int success = SDL_SetRenderDrawColor(renderer,
+                                           255, 0, 255,
+                                           255);
+
     // Create a texture for a rendering context.
     SDL_Texture *texture =  SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_RGBA32,
@@ -74,6 +80,8 @@ int main(int argc, char* argv[])
             }
         }
         // Do some other stuff here
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
     }
 
     // Close and destroy texture
