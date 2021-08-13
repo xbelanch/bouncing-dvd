@@ -1,10 +1,23 @@
-#include <stdio.h>
-#include "./twod.h"
+// gcc main.c -lm `pkg-config --cflags --libs sdl2`
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <SDL2/SDL.h>
+
+#define WINDOWS_WIDTH 640
+#define WINDOWS_HEIGHT 480
 #define SCREEN_FPS 60
+#define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
+#define COLOR_PALETTE (Uint32[]){\
+        0x0f380fff,              \
+        0x306230ff,              \
+        0x8bac0fff,              \
+        0x9bbc0fff,              \
+        0xaaaaaaff               \
+}
 
 void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint32 color) {
-
     // A rectangle, with the origin at the upper left (integer)
     SDL_Rect rect = {
         (int) ceilf(x), (int) ceilf(y), // x, y
@@ -12,7 +25,7 @@ void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint3
     };
 
     // TODO: Unpack color macro?
-    int success = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    int success = SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(0x8bac0fff));
     success = SDL_RenderFillRect(renderer, &rect);
 }
 
@@ -26,39 +39,31 @@ int main(int argc, char* argv[])
     (void)argc;
     (void)argv[0];
 
-    int log = vcore_init();
-    if (log == 0) {
-        fprintf(stdout, "SDL2 was successfully initialized\n");
-    } else {
-        fprintf(stdout, "Cannot initialize SDL2: %s\n", SDL_GetError());
+    { /* Init all SDL Subsystems */
+        if (SDL_Init(SDL_INIT_EVERYTHING != 0)) {
+            fprintf(stdout, "Cannot initialize SDL2: %s\n", SDL_GetError());
+            return 1;
+        }
+        atexit(SDL_Quit);
     }
 
-    // Some graphics info
-    const char *vdriver = SDL_GetCurrentVideoDriver();
-    fprintf(stdout, "Current Video Driver: %s\n", vdriver);
+    { /* Get and log some graphics info */
+        const char *vdriver = SDL_GetCurrentVideoDriver();
+        fprintf(stdout, "Current Video Driver: %s\n", vdriver);
 
-    int numVideoDisplays = SDL_GetNumVideoDisplays();
-    fprintf(stdout, "Number of Video Displays: %d\n", numVideoDisplays);
+        int numVideoDisplays = SDL_GetNumVideoDisplays();
+        fprintf(stdout, "Number of Video Displays: %d\n", numVideoDisplays);
 
-    SDL_Rect rect = {0};
-    int displayBounds = SDL_GetDisplayBounds(0, &rect);
-    if (displayBounds == 0) {
-        fprintf(stdout, "Display bounds: %d - %d\n", rect.w, rect.h);
-    }
-
-    SDL_DisplayOrientation displayOrientation = SDL_GetDisplayOrientation(0);
-    switch(displayOrientation) {
-    case 0:
-        fprintf(stdout, "Display orientation: %d\n", displayOrientation);
-        break;
-    default:
-        break;
+        SDL_Rect rect;
+        int displayBounds = SDL_GetDisplayBounds(0, &rect);
+        if (displayBounds == 0)
+            fprintf(stdout, "Display bounds: %d - %d\n", rect.w, rect.h);
     }
 
     // Create a window with the specified position, dimensions, and flags
-    SDL_Window *window = SDL_CreateWindow("Just a window",
+    SDL_Window *window = SDL_CreateWindow("SDL2 Project Template",
                                           SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                          640, 480,
+                                          WINDOWS_WIDTH, WINDOWS_HEIGHT,
                                           SDL_WINDOW_SHOWN);
 
     if (window == NULL) {
@@ -72,15 +77,13 @@ int main(int argc, char* argv[])
 
     // Set the color used for drawing operations (Rect, Line and Clear).
     // Paint it purple for debugging
-    int success = SDL_SetRenderDrawColor(renderer,
-                                           255, 0, 255,
-                                           255);
+    // int success = SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
 
     // Create a texture for a rendering context.
     SDL_Texture *texture =  SDL_CreateTexture(renderer,
                                               SDL_PIXELFORMAT_RGBA32,
                                               SDL_TEXTUREACCESS_STATIC,
-                                              640, 480);
+                                              WINDOWS_WIDTH, WINDOWS_HEIGHT);
 
     // A simple dummy event
     SDL_Event event;
@@ -109,7 +112,7 @@ int main(int argc, char* argv[])
 
         {  /* Render clear */
             // Clear the current rendering target with the drawing color
-            int success = SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+            int success = SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
             SDL_RenderClear(renderer);
         }
 
@@ -153,17 +156,14 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Close and destroy texture
-    SDL_DestroyTexture(texture);
-    // Close and destroy texture
-    SDL_DestroyRenderer(renderer);
-    // Close and destroy the window
-    SDL_DestroyWindow(window);
-
-    // Clean Up
-    vcore_shutdown();
+    { /* Clean Up */
+        // Close and destroy texture
+        SDL_DestroyTexture(texture);
+        // Close and destroy texture
+        SDL_DestroyRenderer(renderer);
+        // Close and destroy the window
+        SDL_DestroyWindow(window);
+    }
 
     return 0;
 }
-
-// gcc main.c -lm `pkg-config --cflags --libs sdl2`
