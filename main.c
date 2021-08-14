@@ -6,6 +6,9 @@
 
 #define WINDOWS_WIDTH 640
 #define WINDOWS_HEIGHT 480
+#define MS_PER_FRAME 16
+
+
 #define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
 #define COLOR_PALETTE (Uint32[]){\
         0x0f380fff,              \
@@ -126,7 +129,7 @@ int main(int argc, char* argv[])
 
     /* Game loop */
     while (1) {
-        Uint64 start = SDL_GetPerformanceCounter();
+        Uint32 start = SDL_GetTicks();
 
         { /* processInput() */
             // Pumps the event loop, gathering events from the input devices.
@@ -178,11 +181,8 @@ int main(int argc, char* argv[])
         }
 
         { /* Cap to an "exact" framerate */
-
             // Cap to 60 FPS (FPS Delay)
-            Uint64 end = SDL_GetPerformanceCounter();
-            float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-            SDL_Delay(floor(16.6666f - elapsedMS));
+            SDL_Delay(start + MS_PER_FRAME - SDL_GetTicks());
             frames++;
         }
     }
