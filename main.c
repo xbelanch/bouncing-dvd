@@ -6,7 +6,6 @@
 
 #define WINDOWS_WIDTH 640
 #define WINDOWS_HEIGHT 480
-#define MS_PER_UPDATE 16.66777
 #define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
 #define COLOR_PALETTE (Uint32[]){\
         0x0f380fff,              \
@@ -16,21 +15,23 @@
         0xaaaaaaff               \
 }
 
+const int SIMULATION_FPS = 60;
+const double MS_PER_UPDATE  = 1.0f / SIMULATION_FPS;
 typedef struct {
     float x, y;
-    int dirX, dirY;
     float width, height;
     float xSpeed, ySpeed;
     Uint32 born, lastUpdate;
+    Uint32 color;
 } BouncingLogo;
 
 BouncingLogo DVD;
+int W0, H0;
 
 SDL_Renderer *renderer;
 SDL_Texture *texture;
 Uint32 initial_ticks, elapsed_ms;
 size_t frames = 0;
-
 
 void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint32 color) {
     // A rectangle, with the origin at the upper left (integer)
@@ -38,8 +39,6 @@ void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint3
         (int) ceilf(x), (int) ceilf(y), // x, y
         (int) ceilf(w), (int) ceilf(h) // w, h
     };
-
-    // TODO: Unpack color macro?
     SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(color));
     SDL_RenderFillRect(renderer, &rect);
 }
@@ -55,14 +54,13 @@ int main(int argc, char* argv[])
         DVD = (BouncingLogo){
             .x = rand() % WINDOWS_WIDTH,
             .y = rand() % WINDOWS_HEIGHT,
-            .dirX = (rand() % 2)  == 1 ? 1 : -1,
-            .dirY = (rand() % 2)  == 1 ? 1 : -1,
-            .width = 64,
-            .height = 64,
-            .xSpeed = 0.25f,
-            .ySpeed = 0.25f,
+            .width = 90,
+            .height = 60,
+            .xSpeed = 0.1f,
+            .ySpeed = 0.1f,
             .born = SDL_GetTicks(),
-            .lastUpdate = SDL_GetTicks()
+            .lastUpdate = SDL_GetTicks(),
+            .color = 0xffffffff
         };
 
         if (DVD.x < 0)
@@ -75,6 +73,11 @@ int main(int argc, char* argv[])
             DVD.y = WINDOWS_HEIGHT - DVD.height;
     }
 
+    // The effective displacement
+    W0 = WINDOWS_WIDTH - DVD.width;
+    H0 = WINDOWS_HEIGHT - DVD.height;
+    fprintf(stdout, "W0 %d\n", W0);
+    fprintf(stdout, "H0 %d\n", H0);
 
     { /* Init all SDL Subsystems */
         if (SDL_Init(SDL_INIT_VIDEO != 0)) {
@@ -146,18 +149,28 @@ int main(int argc, char* argv[])
                     exit(0);
                 }
             }
-            DVD.y += (DVD.ySpeed * deltaTime ) * DVD.dirY;
         }
 
         { /* update(elapsed) */
-            DVD.x += (DVD.xSpeed * deltaTime ) * DVD.dirX;
+            DVD.x += (DVD.xSpeed * deltaTime);
+            DVD.y += (DVD.ySpeed * deltaTime);
 
-            if (DVD.x >= WINDOWS_WIDTH - DVD.width || DVD.x < 0)
-                DVD.dirX = -(DVD.dirX);
-
-            if (DVD.y >= WINDOWS_HEIGHT - DVD.height || DVD.y < 0)
-                DVD.dirY = -(DVD.dirY);
-
+            if ((int)DVD.x == W0) {
+                DVD.xSpeed = -(DVD.xSpeed);
+                DVD.color = 0xff00ffff;
+            }
+            if ((int)DVD.y == H0) {
+                DVD.ySpeed = -(DVD.ySpeed);
+                DVD.color = 0xffff00ff;
+            }
+            if ((int)DVD.x == 0) {
+                DVD.xSpeed = -(DVD.xSpeed);
+                DVD.color = 0x00ffffff;
+            }
+            if ((int)DVD.y == 0) {
+                DVD.ySpeed = -(DVD.ySpeed);
+                DVD.color = 0x00ff00ff;
+            }
             while (lag >= MS_PER_UPDATE) {
                 lag -= MS_PER_UPDATE;
             }
@@ -175,7 +188,7 @@ int main(int argc, char* argv[])
                       DVD.x,
                       DVD.y,
                       DVD.width, DVD.height,
-                      COLOR_PALETTE[2]);
+                      DVD.color);
 
             // Update the screen with rendering performed.
             SDL_RenderPresent(renderer);
