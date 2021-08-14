@@ -6,9 +6,7 @@
 
 #define WINDOWS_WIDTH 640
 #define WINDOWS_HEIGHT 480
-#define MS_PER_FRAME 16
-
-
+#define MS_PER_UPDATE 16.66777
 #define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
 #define COLOR_PALETTE (Uint32[]){\
         0x0f380fff,              \
@@ -61,8 +59,8 @@ int main(int argc, char* argv[])
             .dirY = (rand() % 2)  == 1 ? 1 : -1,
             .width = 64,
             .height = 64,
-            .xSpeed = 256.0f,
-            .ySpeed = 256.0f,
+            .xSpeed = 0.25f,
+            .ySpeed = 0.25f,
             .born = SDL_GetTicks(),
             .lastUpdate = SDL_GetTicks()
         };
@@ -126,10 +124,15 @@ int main(int argc, char* argv[])
             fprintf(stdout, "Display bounds: %d - %d\n", rect.w, rect.h);
     }
 
-
     /* Game loop */
+    Uint64 previous = SDL_GetPerformanceCounter();
+    double deltaTime = 0;
+    double lag = 0;
     while (1) {
-        Uint32 start = SDL_GetTicks();
+        Uint64 current = SDL_GetPerformanceCounter();
+        deltaTime = ((current - previous) * 1000.0 / (double) SDL_GetPerformanceFrequency());
+        previous = current;
+        lag += deltaTime;
 
         { /* processInput() */
             // Pumps the event loop, gathering events from the input devices.
@@ -143,15 +146,11 @@ int main(int argc, char* argv[])
                     exit(0);
                 }
             }
+            DVD.y += (DVD.ySpeed * deltaTime ) * DVD.dirY;
         }
 
-        { /* update() */
-
-            Uint32 time = SDL_GetTicks();
-            float dt = (time - DVD.lastUpdate) / 1000.0f;
-
-            DVD.x += (DVD.xSpeed * dt) * DVD.dirX;
-            DVD.y += (DVD.ySpeed * dt) * DVD.dirY;
+        { /* update(elapsed) */
+            DVD.x += (DVD.xSpeed * deltaTime ) * DVD.dirX;
 
             if (DVD.x >= WINDOWS_WIDTH - DVD.width || DVD.x < 0)
                 DVD.dirX = -(DVD.dirX);
@@ -159,9 +158,11 @@ int main(int argc, char* argv[])
             if (DVD.y >= WINDOWS_HEIGHT - DVD.height || DVD.y < 0)
                 DVD.dirY = -(DVD.dirY);
 
-            DVD.lastUpdate = SDL_GetTicks();
-        }
+            while (lag >= MS_PER_UPDATE) {
+                lag -= MS_PER_UPDATE;
+            }
 
+        }
 
         { /* render() */
 
@@ -180,11 +181,11 @@ int main(int argc, char* argv[])
             SDL_RenderPresent(renderer);
         }
 
-        { /* Cap to an "exact" framerate */
-            // Cap to 60 FPS (FPS Delay)
-            SDL_Delay(start + MS_PER_FRAME - SDL_GetTicks());
-            frames++;
-        }
+        // { /* Cap to an "exact" framerate */
+        //     // Cap to 60 FPS (FPS Delay)
+        //     lastTime = current;
+        //     frames++;
+        // }
     }
 
     { /* Clean Up */
