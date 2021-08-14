@@ -1,5 +1,3 @@
-// gcc main.c -lm `pkg-config --cflags --libs sdl2`
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -8,7 +6,6 @@
 
 #define WINDOWS_WIDTH 640
 #define WINDOWS_HEIGHT 480
-#define SCREEN_FPS 60
 #define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
 #define COLOR_PALETTE (Uint32[]){\
         0x0f380fff,              \
@@ -42,8 +39,8 @@ void draw_rect(SDL_Renderer *renderer, float x, float y, float w, float h, Uint3
     };
 
     // TODO: Unpack color macro?
-    int success = SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(0x8bac0fff));
-    success = SDL_RenderFillRect(renderer, &rect);
+    SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(color));
+    SDL_RenderFillRect(renderer, &rect);
 }
 
 int main(int argc, char* argv[])
@@ -131,25 +128,21 @@ int main(int argc, char* argv[])
     while (1) {
         Uint64 start = SDL_GetPerformanceCounter();
 
-        // Pumps the event loop, gathering events from the input devices.
-        SDL_PumpEvents();
+        { /* processInput() */
+            // Pumps the event loop, gathering events from the input devices.
+            SDL_PumpEvents();
 
-        // Handle keyboard and other events
-        SDL_Event event;
-        while(SDL_PollEvent(&event)) {
-            // Handle your events here
-            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
-                exit(0);
+            // Handle keyboard and other events
+            SDL_Event event;
+            while(SDL_PollEvent(&event)) {
+                // Handle your events here
+                if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                    exit(0);
+                }
             }
         }
 
-        {  /* Render clear */
-            // Clear the current rendering target with the drawing color
-            SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
-            SDL_RenderClear(renderer);
-        }
-
-        { /* Physics loop */
+        { /* update() */
 
             Uint32 time = SDL_GetTicks();
             float dt = (time - DVD.lastUpdate) / 1000.0f;
@@ -167,31 +160,29 @@ int main(int argc, char* argv[])
         }
 
 
-        { /* Render stuff */
+        { /* render() */
+
+            // Clear the current rendering target with the drawing color
+            SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
+            SDL_RenderClear(renderer);
+
             // Draw a rectangle on the current rendering target with the drawing color
             draw_rect(renderer,
                       DVD.x,
                       DVD.y,
-                      DVD.width, DVD.height, 0);
+                      DVD.width, DVD.height,
+                      COLOR_PALETTE[2]);
+
+            // Update the screen with rendering performed.
+            SDL_RenderPresent(renderer);
         }
 
-
-
-		// Delay for a random number of ticks - this makes the frame rate variable,
-		// demonstrating that the physics is independent of the frame rate.
-		// SDL_Delay(rand() % 25);
-
-
-        { /* End Rendering */
+        { /* Cap to an "exact" framerate */
 
             // Cap to 60 FPS (FPS Delay)
             Uint64 end = SDL_GetPerformanceCounter();
             float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
             SDL_Delay(floor(16.6666f - elapsedMS));
-
-            // Update the screen with rendering performed.
-            SDL_RenderPresent(renderer);
-
             frames++;
         }
     }
