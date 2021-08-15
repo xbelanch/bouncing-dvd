@@ -4,6 +4,9 @@
 #include <time.h>
 #include <SDL2/SDL.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "./stb_image.h"
+
 #define WINDOWS_WIDTH 640
 #define WINDOWS_HEIGHT 480
 #define UNPACK_COLOR(color) (color >> 24), (color >> 16 & 0xff), (color >> 8 & 0xff), (color & 0xff)
@@ -14,6 +17,8 @@
         0x9bbc0fff,              \
         0xaaaaaaff               \
 }
+
+#define BACKGROUND COLOR_PALETTE[0]
 
 const int SIMULATION_FPS = 60;
 const double MS_PER_UPDATE  = 1.0f / SIMULATION_FPS;
@@ -49,6 +54,25 @@ int main(int argc, char* argv[])
     (void)argv[0];
 
     srand(time(NULL));
+
+    // Load logo DVD image
+    int req_format = STBI_rgb_alpha;
+    int width, height, orig_format;
+    unsigned char* data = stbi_load("./assets/sprites/DVD_logo.png", &width, &height, &orig_format, req_format);
+    if (data == NULL) {
+        SDL_Log("Loading image failed: %s", stbi_failure_reason());
+        exit(1);
+    }
+
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom((void*)data, width, height, 32, 4 * width, SDL_PIXELFORMAT_RGBA32);
+
+    if (surface == NULL) {
+        SDL_Log("Creating surface failed: %s", SDL_GetError());
+        stbi_image_free(data);
+        exit(1);
+    } else {
+        SDL_SaveBMP(surface, "./assets/sprites/DVD_logo.bmp");
+    }
 
     {  /* DVD Logo Initialization */
         DVD = (BouncingLogo){
@@ -104,7 +128,7 @@ int main(int argc, char* argv[])
         renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
         // Set the color used for drawing operations (Rect, Line and Clear).
-        SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
+        SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(BACKGROUND));
 
         // Create a texture for a rendering context.
         texture =  SDL_CreateTexture(renderer,
@@ -131,6 +155,7 @@ int main(int argc, char* argv[])
     Uint64 previous = SDL_GetPerformanceCounter();
     double deltaTime = 0;
     double lag = 0;
+
     while (1) {
         Uint64 current = SDL_GetPerformanceCounter();
         deltaTime = ((current - previous) * 1000.0 / (double) SDL_GetPerformanceFrequency());
@@ -155,6 +180,7 @@ int main(int argc, char* argv[])
             DVD.x += (DVD.xSpeed * deltaTime);
             DVD.y += (DVD.ySpeed * deltaTime);
 
+            // Collision
             if ((int)DVD.x == W0) {
                 DVD.xSpeed = -(DVD.xSpeed);
                 DVD.color = 0xff00ffff;
@@ -180,7 +206,7 @@ int main(int argc, char* argv[])
         { /* render() */
 
             // Clear the current rendering target with the drawing color
-            SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(COLOR_PALETTE[0]));
+            SDL_SetRenderDrawColor(renderer, UNPACK_COLOR(BACKGROUND));
             SDL_RenderClear(renderer);
 
             // Draw a rectangle on the current rendering target with the drawing color
@@ -199,9 +225,13 @@ int main(int argc, char* argv[])
         //     lastTime = current;
         //     frames++;
         // }
-    }
+    } // End of Game Loop
 
     { /* Clean Up */
+        // Free image data
+        stbi_image_free(data);
+        // Free surface memory
+        SDL_FreeSurface(surface);
         // Close and destroy texture
         SDL_DestroyTexture(texture);
         // Close and destroy texture
