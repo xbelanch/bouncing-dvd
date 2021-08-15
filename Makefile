@@ -9,4 +9,4 @@ test: main $(INPUT)
 	./main $(INPUT)
 
 main: main.c
-	$(CC) $(CFLAGS) -o main main.c $(LIBS)
+	$(CC) -o main main.c $(CFLAGS) $(LIBS)
