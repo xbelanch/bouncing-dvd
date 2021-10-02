@@ -3,6 +3,7 @@
 #include <math.h>
 #include <time.h>
 #include <SDL2/SDL.h>
+#include "./sdl_framerate.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "./stb_image.h"
@@ -38,7 +39,8 @@ int W0, H0;
 
 SDL_Renderer *renderer;
 SDL_Texture *texture;
-SDL_Surface* surface;
+SDL_Surface *surface;
+Timer *timer;
 Uint32 initial_ticks, elapsed_ms;
 size_t frames = 0;
 
@@ -70,14 +72,17 @@ int main(int argc, char* argv[])
 
     srand(time(NULL));
 
+    timer = SDL_InitTimer();
+    SDL_StartTimer(timer);
+
     {  /* DVD Logo Initialization */
         DVD = (BouncingLogo){
             .x = rand() % WINDOWS_WIDTH,
             .y = rand() % WINDOWS_HEIGHT,
             .width = 90,
             .height = 60,
-            .xSpeed = 0.1f,
-            .ySpeed = 0.1f,
+            .xSpeed = 1.f,
+            .ySpeed = 1.f,
             .born = SDL_GetTicks(),
             .lastUpdate = SDL_GetTicks(),
             .color = 0xffffffff
@@ -199,15 +204,13 @@ int main(int argc, char* argv[])
     }
 
     /* Game loop */
-    Uint64 previous = SDL_GetPerformanceCounter();
-    double deltaTime = 0;
-    double lag = 0;
-
+    float frameTimeAccumulator = 0.0f;
     while (1) {
-        Uint64 current = SDL_GetPerformanceCounter();
-        deltaTime = ((current - previous) * 1000.0 / (double) SDL_GetPerformanceFrequency());
-        previous = current;
-        lag += deltaTime;
+        fflush(stdout);
+        SDL_UpdateTimer(timer);
+        float elapsed = SDL_GetElapsedTime(timer);
+        fprintf(stdout, "\relapsed: %f FPS: %d", elapsed, SDL_GetFPS(timer));
+
 
         { /* processInput() */
             // Pumps the event loop, gathering events from the input devices.
@@ -224,28 +227,32 @@ int main(int argc, char* argv[])
         }
 
         { /* update(elapsed) */
-            DVD.x += (DVD.xSpeed * deltaTime);
-            DVD.y += (DVD.ySpeed * deltaTime);
+            frameTimeAccumulator += elapsed;
 
-            // Collision
-            if ((int)DVD.x == W0) {
-                DVD.xSpeed = -(DVD.xSpeed);
-                DVD.color = 0xff00ffff;
-            }
-            if ((int)DVD.y == H0) {
-                DVD.ySpeed = -(DVD.ySpeed);
-                DVD.color = 0xffff00ff;
-            }
-            if ((int)DVD.x == 0) {
-                DVD.xSpeed = -(DVD.xSpeed);
-                DVD.color = 0x00ffffff;
-            }
-            if ((int)DVD.y == 0) {
-                DVD.ySpeed = -(DVD.ySpeed);
-                DVD.color = 0x00ff00ff;
-            }
-            while (lag >= MS_PER_UPDATE) {
-                lag -= MS_PER_UPDATE;
+            // Update physics every 1/60 seconds?
+            while (frameTimeAccumulator >= 0.016667) {
+                DVD.x += (DVD.xSpeed * elapsed);
+                DVD.y += (DVD.ySpeed * elapsed);
+
+                // Collision
+                if ((int)DVD.x == W0) {
+                    DVD.xSpeed = -(DVD.xSpeed);
+                    DVD.color = 0xff00ffff;
+                }
+                if ((int)DVD.y == H0) {
+                    DVD.ySpeed = -(DVD.ySpeed);
+                    DVD.color = 0xffff00ff;
+                }
+                if ((int)DVD.x == 0) {
+                    DVD.xSpeed = -(DVD.xSpeed);
+                    DVD.color = 0x00ffffff;
+                }
+                if ((int)DVD.y == 0) {
+                    DVD.ySpeed = -(DVD.ySpeed);
+                    DVD.color = 0x00ff00ff;
+                }
+
+                frameTimeAccumulator -= 0.016667;
             }
 
         }
@@ -265,16 +272,15 @@ int main(int argc, char* argv[])
 
             // Update the screen with rendering performed.
             SDL_RenderPresent(renderer);
+
+            // This is not happening!
+            // SDL_Delay(15);
         }
 
-        // { /* Cap to an "exact" framerate */
-        //     // Cap to 60 FPS (FPS Delay)
-        //     lastTime = current;
-        //     frames++;
-        // }
     } // End of Game Loop
 
     { /* Clean Up */
+        free(timer);
         // Free image data
         stbi_image_free(data);
         // Free surface memory

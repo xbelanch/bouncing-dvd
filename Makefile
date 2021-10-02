@@ -8,5 +8,5 @@ INPUT=
 test: main $(INPUT)
 	./main $(INPUT)
 
-main: main.c
-	$(CC) -o main main.c $(CFLAGS) $(LIBS)
+main: main.c sdl_framerate.c
+	$(CC) -o main main.c sdl_framerate.c $(CFLAGS) $(LIBS)
