@@ -1,12 +1,6 @@
-# SDL2 Project Template
+# Bouncing DVD Logo
 
-Just another SDL2 template for recreational 2D projects. Instead of starting with a blank template I thought it'll be more useful to implement a simple [Bouncing DVD Screensaver] (https://knowyourmeme.com/memes/bouncing-dvd-logo) to introduce a few game patterns like:
-
-  * [ ] Basic animation
-  * [ ] Capping the Framerate
-  * [ ] Keyboard events like Escape or Pause.
-
-## References
+Just another [Bouncing DVD Logo](https://knowyourmeme.com/memes/bouncing-dvd-logo) in SDL2 just for implementing basic stuff from:
 
 - [Handmade Penguin](https://davidgow.net/handmadepenguin/default.html)
 - [Game Progamming Patterns](https://gameprogrammingpatterns.com/contents.html)
